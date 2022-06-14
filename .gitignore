@@ -1,0 +1,13 @@
+dist/
+build/
+
+anima.zip
+src/anima/bin/anima*
+
+*.egg-info
+
+
+# editor files
+*~
+*.swp
+*.vscode

@@ -1,0 +1,138 @@
+# Downloads ANIMA from https://anima.readthedocs.io/en/latest/install_binaries.html
+# and wrap it into a pip-compatible package.
+#
+# To use: create a New Release at https://github.com/<path_to>/<this_repo>/releases/new
+# and tag it with the tag of the matching ANIMA release you want, e.g. v4.1.0.
+
+name: Publish Package
+
+on:
+  # publish from the Releases page:
+  release:
+    types: [published]
+
+jobs:
+
+  package:
+
+    # Defining matrix for OS and Python
+    strategy:
+
+      # Ensure exhaustive testing of all scenarios to gather maximum amount of information
+      fail-fast: false
+
+      matrix:
+        os: [ "windows-latest", "macos-latest", "ubuntu-latest" ]
+        # TODO: anima publishes separate fedora builds. What should we do about these?
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        # this ensures that we can use the same shell syntax even on Windows
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel
+
+    - name: Extract version
+      # the version/platform tags are not quite consistent with the formats ANIMA uses 
+      # 
+      run: |
+        # strip -latest off the OS
+        PLATFORM=${{matrix.os}}
+        PLATFORM="${PLATFORM%-latest}"
+
+        # strip refs/tags/ and a leading 'v' or trailing 'rc'/'dev' from the tag
+        #  echo ::set-output name=version::$(git describe --always) # or this?
+        VERSION="${GITHUB_REF#refs/*/}"
+        VERSION="${VERSION#v}"
+        # stripping the 'rc' suffix allows testing the packaging by tagging a release candidate.
+        # (but only the packaging; the actual contents are identical to whatever upstream posted)
+        VERSION="${VERSION%rc*}"
+        VERSION="${VERSION%dev*}"
+
+        # macOS used to be called OS X, and ANIMA<=3.2 called it that.
+        if [ "${PLATFORM}" = "macos" ] && ( python -c 'import sys; sys.exit(not (tuple(int(e) for e in sys.argv[1].split(".")) <= (3,2)))' "${VERSION}" ); then
+          # TODO: is there a way to do reliable version comparisons without python tuples? maybe awk?
+          PLATFORM="OSX"
+        fi
+
+        echo $VERSION # DEBUG
+        echo $PLATFORM
+
+        echo PLATFORM="${PLATFORM}" >> $GITHUB_ENV
+        echo VERSION="${VERSION}" >> $GITHUB_ENV
+
+    - name: Download pre-built Anima binaries
+      run: |
+        curl -JLf https://github.com/Inria-Empenn/Anima-Public/releases/download/v${VERSION}/Anima-${PLATFORM}-${VERSION}.zip -o anima.zip
+        ls -la # DEBUG
+
+    - name: Unpack Anima binaries
+      run: |
+        # ANIMA hasn't always been consistent about the folder structure within their releases;
+        #  -j means throw away the folder structure, and
+        #  -d then dumps the files directly into our python package
+        unzip -j anima.zip -d src/anima/bin || [ $? -lt 2 ]
+        # unzip returns 1 for "mostly success"; warnings like
+        # >  appears to use backslashes as path separators
+        # will return 1, but should not fail the build.
+
+    - name: Build
+      run: |
+          # Note: intentionally *not* building an sdist here; there's no source code here that anyone cares about.
+          python -m build --wheel
+
+    - name: Save build
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist
+          
+
+  # pypi-publish doesn't support Windows; their workaround is to use a sepa actions/{upload,download}-artifact,
+  # to bridge from the Windows/mac/Linux builds to a separate final Linux build
+  # https://github.com/pypa/gh-action-pypi-publish/issues/54
+  # > Besides, publishing from parallel uncoordinated workers is a bad idea™ —
+  # > you wouldn't be happy when two job (say Win+Mac) publishes the wheels but
+  # > Linux fails and you'll end up with a half-published release, would you?
+  publish:
+    needs:
+    - package
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Retrieve builds
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist
+
+    - name: Publish to Github
+      uses: softprops/action-gh-release@v1
+      with:
+        files: 'dist/*'
+        fail_on_unmatched_files: true
+        prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'dev') }}
+    
+    - name: Publish to PyPI
+      if: false # DEBUG: disabled due to PyPI file size limits; setup.py will have to be reworked before this can be enabled.
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        verbose: true # DEBUG
+
+        user: __token__
+        # staging:
+        password: ${{ secrets.TEST_PYPI_PASSWORD }}
+        repository_url: https://test.pypi.org/legacy/
+        # production:
+        #password: ${{ secrets.PYPI_PASSWORD }}
