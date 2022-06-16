@@ -23,7 +23,7 @@ import setuptools_scm
 
 import os
 
-ANIMA_SUBPACKAGES=[app for app in os.listdir("src/anima/bin") if app.startswith("anima")]
+ANIMA_SUBPACKAGES=[app.replace(".exe","") for app in os.listdir("src/anima/bin") if app.startswith("anima")]
 ANIMA_SUBPACKAGE=os.getenv("ANIMA_SUBPACKAGE", None)
 if ANIMA_SUBPACKAGE and ANIMA_SUBPACKAGE not in ANIMA_SUBPACKAGES:
     raise ValueError(f"ANIMA_SUBPACKAGE={ANIMA_SUBPACKAGE} not found in src/anima/bin")
