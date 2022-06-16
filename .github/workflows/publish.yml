@@ -89,8 +89,7 @@ jobs:
 
     - name: Build
       run: |
-          # Note: intentionally *not* building an sdist here; there's no source code here that anyone cares about.
-          python -m build --wheel
+          ./build-all.sh
 
     - name: Save build
       uses: actions/upload-artifact@v3
@@ -125,7 +124,7 @@ jobs:
         prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'dev') }}
     
     - name: Publish to PyPI
-      if: false # DEBUG: disabled due to PyPI file size limits; setup.py will have to be reworked before this can be enabled.
+      #if: false # DEBUG: disabled due to PyPI file size limits; setup.py will have to be reworked before this can be enabled.
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         verbose: true # DEBUG

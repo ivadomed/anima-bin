@@ -8,8 +8,12 @@
 # It also assumes that git tag matches the build/downloaded version of anima
 # because it uses setuptools_scm to generate the python version tag. 
 #
-# Basically this setup.py isn't enough by itself to make a reliable build,
-# you need to nest this in a further build script.
+# And, this generates a *split-package* because a monolithic package is too large to fit on PyPI:
+# each binary is packaged into "animaWhatever==$VERSION", and then "anima-bin==$VERSION" depends
+# on all the "animaWhatever"s. It's convoluted. Read the code.
+#
+# Basically, for several reasons this setup.py isn't enough by itself
+# to make a reliable build, you need to nest this in a further build script.
 #
 # TODO: is it possible to do this with the more modern setup.cfg?
 #       pyproject.toml? or is it not worth the trouble?
@@ -18,6 +22,11 @@ from setuptools import setup, find_namespace_packages, Extension
 import setuptools_scm
 
 import os
+
+ANIMA_SUBPACKAGES=[app for app in os.listdir("src/anima/bin") if app.startswith("anima")]
+ANIMA_SUBPACKAGE=os.getenv("ANIMA_SUBPACKAGE", None)
+if ANIMA_SUBPACKAGE and ANIMA_SUBPACKAGE not in ANIMA_SUBPACKAGES:
+    raise ValueError(f"ANIMA_SUBPACKAGE={ANIMA_SUBPACKAGE} not found in src/anima/bin")
 
 # Build ${name}-${version}-py3-none-${OS}.whl, meaning we are:
 # - compatible with any python (because there's essentially no python in this package)
@@ -43,9 +52,9 @@ class bdist_wheel(_bdist_wheel):
         return python, abi, plat
 
 setup(
-    name="ivadomed-anima-bin",
-    description="ANIMA medical image processing programs",
-    long_description=open("README.md").read(),
+    name="ivadomed-" + ("anima-bin" if not ANIMA_SUBPACKAGE else ANIMA_SUBPACKAGE),
+    description="ANIMA medical image processing program" + ("s" if not ANIMA_SUBPACKAGE else ": " + ANIMA_SUBPACKAGE),
+    long_description=open("README.md").read(), # TODO: use a template for the subpackages?
     long_description_content_type='text/markdown',
 
     author="Inria",
@@ -64,21 +73,34 @@ setup(
     packages=find_namespace_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
-    package_data={'anima.bin': ["anima*"]},
+    # limit package_data to *only* package the specific requested app
+    package_data={'anima.bin': [ANIMA_SUBPACKAGE] if ANIMA_SUBPACKAGE else []},
 
     # wrap each anima binary in a python script.
     # (the ".exe" bit is to handle Windows)
     # this introduces a big lag: each anima call requires booting the python interpreter.
     # but there's no other way to get pip to add binaries to $PATH.
     entry_points = {
-        'console_scripts': [f'{bin.replace(".exe","")} = anima.bin:main' for bin
-                               in os.listdir("src/anima/bin")
+        'console_scripts': ([] if not ANIMA_SUBPACKAGE else
+                            [f'{bin.replace(".exe","")} = anima.bin:main' for bin
+                               in [ANIMA_SUBPACKAGE]
                                if bin.startswith('anima') and not bin.endswith('*.py')]
+                            )
     },
+
+    install_requires = (
+        [f'ivadomed-{bin}=={setuptools_scm.get_version()}' for bin in ANIMA_SUBPACKAGES]
+        if not ANIMA_SUBPACKAGE else
+        []
+        ),
 
     cmdclass={
         # use the correct platform tag; see above
-        'bdist_wheel': bdist_wheel,
+        'bdist_wheel':
+        (_bdist_wheel
+        if not ANIMA_SUBPACKAGE else
+        bdist_wheel
+        )
     },
 
 )
