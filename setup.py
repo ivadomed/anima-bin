@@ -71,7 +71,7 @@ setup(
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
 
-    packages=find_namespace_packages(where="src"),
+    packages=find_namespace_packages(where="src", exclude=['anima' if ANIMA_APP else 'anima.bin']),
     package_dir={"": "src"},
     include_package_data=True,
     # limit package_data to *only* package the specific requested app
@@ -83,7 +83,7 @@ setup(
     # but there's no other way to get pip to add binaries to $PATH.
     entry_points = {
         'console_scripts': ([] if not ANIMA_APP else
-                            [f'{ANIMA_APP.removesuffix(".exe")} = anima.bin:main']
+                            [f'{ANIMA_APP.removesuffix(".exe")} = anima._bin:main']
                             )
     },
 

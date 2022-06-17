@@ -16,7 +16,7 @@ def main():
     sys.argv[0] = os.path.basename(sys.argv[0])
 
     # jump into the target binary
-    os.execv(pathlib.Path(__file__).parent/sys.argv[0], sys.argv)
+    os.execv(pathlib.Path(__file__).parent/"bin"/sys.argv[0], sys.argv)
 
 if __name__ == '__main__':
     main()
