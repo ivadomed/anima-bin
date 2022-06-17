@@ -18,8 +18,7 @@ python -m build --wheel --no-isolation
 # because otherwise the parallel processes all try to use the same build/ folder.
 #echo 'ANIMA_SUBPACKAGE=$1 python -m build' > build.sh
 (cd src/anima/bin; ls -1 anima*) | \
-	sed 's/.exe$//' | \
-	xargs -P 1 -n 1 sh -c 'rm -rf build/ && ANIMA_SUBPACKAGE=$0 python -m build --wheel --no-isolation'
+	xargs -P 1 -n 1 sh -c 'rm -rf build/ && ANIMA_APP=$0 python -m build --wheel --no-isolation'
 
 # throw away the sdists, we don't actually want anyone to see them
 #rm dist/*.tar.gz
