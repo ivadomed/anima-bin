@@ -6,6 +6,7 @@
 
 import sys, os, os.path, pathlib
 
+
 def main():
     # sys.argv[0] is by default whatever the user typed in to call this path
     # it must end with the app name, but may or may not also include
@@ -42,7 +43,8 @@ def main():
     # 4. is a variant on 3 that seems to be officially blessed, however it is an extremely new API.
     #
     # ref: https://setuptools.pypa.io/en/latest/userguide/datafiles.html?highlight=package_data#accessing-data-files-at-runtime
-    os.execv(pathlib.Path(__file__).parent/"bin"/sys.argv[0], sys.argv)
+    os.execv(pathlib.Path(__file__).parent / "bin" / sys.argv[0], sys.argv)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

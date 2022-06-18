@@ -1,7 +1,7 @@
 dist/
 build/
 
-anima.zip
+Anima-*.zip
 src/anima/bin/anima*
 
 *.egg-info
