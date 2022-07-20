@@ -15,6 +15,10 @@
 # Basically, for several reasons this setup.py isn't enough by itself
 # to make a reliable build, you need to nest this in a further build script.
 #
+# This is a bit weird to do as a python package, but it's not the only one:
+# * https://simonwillison.net/2022/May/23/bundling-binary-tools-in-python-wheels/
+# * https://news.ycombinator.com/item?id=31776873
+#
 # TODO: is it possible to do this with the more modern setup.cfg?
 #       pyproject.toml? or is it not worth the trouble?
 
