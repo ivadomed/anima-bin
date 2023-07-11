@@ -5,9 +5,9 @@ set -o pipefail
 
 PLATFORM="${1:-}"
 
-# using --no-isolation is SIGNIFICANTLY faster
+# using --no-isolation is SIGNIFICANTLY faster when building a hundred packages
 # but requires us to manually install the build dependencies
-(set -x; pip install -U 'build' 'setuptools>=45' 'setuptools_scm[toml]>=6.2' 'wheel')
+(set -x; pip install -U 'build' 'setuptools>=45' 'setuptools_scm[toml]>=6.2' 'wheel' 'auditwheel')
 
 if [ -z "${PLATFORM:-}" ]; then
 	if [ "$(uname)" = "Linux" ] && [ -f /etc/os-release ]; then
